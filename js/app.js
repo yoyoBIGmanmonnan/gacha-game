@@ -170,18 +170,72 @@ async function handleShare() {
     ui.shareBtn.disabled = true;
 
     try {
-        // Capture the result container
-        // We temporarily hide the buttons for the screenshot
         const actions = doc.querySelector('.result-actions');
-        actions.style.opacity = '0';
+        const summary = doc.getElementById('result-summary');
 
-        const canvas = await html2canvas(ui.resultContainer, {
+        // 1. Prepare for high-res capture
+        // Create a temporary "Poster Wrapper" to style the result for sharing
+        const posterView = doc.createElement('div');
+        posterView.className = 'poster-view';
+        posterView.style.cssText = `
+            position: fixed; left: -9999px; top: 0;
+            width: 1000px; padding: 40px;
+            background: #0d0d12;
+            color: white; font-family: 'Orbitron', 'Zen Maru Gothic', sans-serif;
+            text-align: center;
+        `;
+
+        // Add Header
+        const header = doc.createElement('div');
+        header.innerHTML = `
+            <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.6); margin-bottom: 5px;">GACHA RESULTS</h1>
+            <p style="color: #a0a0b0; margin-bottom: 30px; letter-spacing: 2px;">IDENTIFIED AS: ${state.user.userId}</p>
+        `;
+        posterView.appendChild(header);
+
+        // Clone Grid and force 5 columns
+        const gridClone = ui.resultGrid.cloneNode(true);
+        gridClone.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        `;
+        // Ensure all cloned cards have visible styles (no animations)
+        gridClone.querySelectorAll('.result-card').forEach(c => {
+            c.style.animation = 'none';
+            c.style.opacity = '1';
+            c.style.transform = 'none';
+        });
+        posterView.appendChild(gridClone);
+
+        // Add Summary if needed
+        if (summary && !summary.classList.contains('hidden')) {
+            const summaryClone = summary.cloneNode(true);
+            summaryClone.style.margin = '20px auto';
+            summaryClone.style.maxWidth = 'none';
+            posterView.appendChild(summaryClone);
+        }
+
+        // Add Footer
+        const footer = doc.createElement('div');
+        footer.style.color = '#555';
+        footer.style.fontSize = '12px';
+        footer.style.marginTop = '20px';
+        footer.textContent = `Generated at ${new Date().toLocaleString()} | Gacha System v1.0`;
+        posterView.appendChild(footer);
+
+        doc.body.appendChild(posterView);
+
+        // 2. Capture
+        const canvas = await html2canvas(posterView, {
             useCORS: true,
             backgroundColor: '#0d0d12',
-            scale: 2 // Higher quality
+            scale: 3, // Very high quality
+            logging: false
         });
 
-        actions.style.opacity = '1';
+        doc.body.removeChild(posterView);
 
         const dataUrl = canvas.toDataURL('image/png');
         const blob = await (await fetch(dataUrl)).blob();
@@ -190,20 +244,19 @@ async function handleShare() {
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 files: [file],
-                title: 'Gacha Result',
-                text: 'Look what I just pulled!'
+                title: 'Gacha Summon Results',
+                text: `My Gacha Results for player ${state.user.userId}!`
             });
         } else {
-            // Fallback: Download
             const link = doc.createElement('a');
-            link.download = 'gacha-result.png';
+            link.download = `gacha_${state.user.userId}.png`;
             link.href = dataUrl;
             link.click();
-            alert("網頁版不支援直接分享，已為您下載截圖！");
+            alert("網頁版不支援直接分享，已為您下載高畫質截圖！");
         }
     } catch (e) {
-        console.error(e);
-        alert("截圖失敗，請手動截圖。");
+        console.error("Share failed", e);
+        alert("產生失敗，請手動截圖。");
     } finally {
         ui.shareBtn.textContent = originalText;
         ui.shareBtn.disabled = false;
