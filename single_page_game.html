@@ -10,6 +10,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Zen+Maru+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* CSS Inlined from styles.css */
         :root {
@@ -519,7 +520,12 @@
             </div>
             <div id="result-container" class="result-container hidden">
                 <div id="result-grid" class="result-grid"></div>
-                <button id="close-result-btn" class="btn-secondary">CONFIRM</button>
+                <div class="result-actions">
+                    <button id="share-btn" class="btn-primary"
+                        style="margin-right: 1rem; background: var(--secondary-color); box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);">SHARE
+                        RESULT</button>
+                    <button id="close-result-btn" class="btn-secondary">CONFIRM</button>
+                </div>
             </div>
         </div>
     </div>
@@ -607,6 +613,7 @@
             resultContainer: doc.getElementById('result-container'),
             resultGrid: doc.getElementById('result-grid'),
             closeResultBtn: doc.getElementById('close-result-btn'),
+            shareBtn: doc.getElementById('share-btn'),
             errorMsg: doc.getElementById('error-message')
         };
 
@@ -615,6 +622,7 @@
         ui.drawOneBtn.addEventListener('click', () => handleDraw('single', 1));
         ui.drawTenBtn.addEventListener('click', () => handleDraw('ten', 10));
         ui.closeResultBtn.addEventListener('click', closeResults);
+        ui.shareBtn.addEventListener('click', handleShare);
 
         async function handleLogin() {
             const userId = ui.userIdInput.value.trim();
@@ -683,6 +691,49 @@
         }
 
         function closeResults() { ui.gachaOverlay.classList.add('hidden'); ui.resultContainer.classList.add('hidden'); }
+
+        async function handleShare() {
+            const originalText = ui.shareBtn.textContent;
+            ui.shareBtn.textContent = "GENERATING...";
+            ui.shareBtn.disabled = true;
+
+            try {
+                const actions = doc.querySelector('.result-actions');
+                actions.style.opacity = '0';
+
+                const canvas = await html2canvas(ui.resultContainer, {
+                    useCORS: true,
+                    backgroundColor: '#0d0d12',
+                    scale: 2
+                });
+
+                actions.style.opacity = '1';
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], 'gacha-result.png', { type: 'image/png' });
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Gacha Result',
+                        text: 'Look what I just pulled!'
+                    });
+                } else {
+                    const link = doc.createElement('a');
+                    link.download = 'gacha-result.png';
+                    link.href = dataUrl;
+                    link.click();
+                    alert("網頁版不支援直接分享，已為您下載截圖！");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("截圖失敗，請手動截圖。");
+            } finally {
+                ui.shareBtn.textContent = originalText;
+                ui.shareBtn.disabled = false;
+            }
+        }
         function renderLobby() {
             ui.displayUserId.textContent = state.user.userId; updateTicketUI();
             ui.charPool.innerHTML = state.pool.map(char => {

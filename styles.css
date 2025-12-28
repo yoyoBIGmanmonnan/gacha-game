@@ -340,11 +340,17 @@ button {
     z-index: 101;
     text-align: center;
     width: 100%;
-    /* Full width on mobile */
     max-width: 1000px;
     margin-top: auto;
     margin-bottom: auto;
-    /* Try to center if small, scroll if big */
+    padding-bottom: 3rem;
+}
+
+.result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
 }
 
 .result-grid {

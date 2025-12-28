@@ -28,6 +28,7 @@ const ui = {
     resultContainer: doc.getElementById('result-container'),
     resultGrid: doc.getElementById('result-grid'),
     closeResultBtn: doc.getElementById('close-result-btn'),
+    shareBtn: doc.getElementById('share-btn'),
     errorMsg: doc.getElementById('error-message')
 };
 
@@ -41,6 +42,7 @@ ui.startBtn.addEventListener('click', handleLogin);
 ui.drawOneBtn.addEventListener('click', () => handleDraw('single', 1));
 ui.drawTenBtn.addEventListener('click', () => handleDraw('ten', 10));
 ui.closeResultBtn.addEventListener('click', closeResults);
+ui.shareBtn.addEventListener('click', handleShare);
 
 async function handleLogin() {
     const userId = ui.userIdInput.value.trim();
@@ -160,7 +162,52 @@ function renderSummary(results, container) {
 function closeResults() {
     ui.gachaOverlay.classList.add('hidden');
     ui.resultContainer.classList.add('hidden');
-    // Clean up animation state
+}
+
+async function handleShare() {
+    const originalText = ui.shareBtn.textContent;
+    ui.shareBtn.textContent = "GENERATING...";
+    ui.shareBtn.disabled = true;
+
+    try {
+        // Capture the result container
+        // We temporarily hide the buttons for the screenshot
+        const actions = doc.querySelector('.result-actions');
+        actions.style.opacity = '0';
+
+        const canvas = await html2canvas(ui.resultContainer, {
+            useCORS: true,
+            backgroundColor: '#0d0d12',
+            scale: 2 // Higher quality
+        });
+
+        actions.style.opacity = '1';
+
+        const dataUrl = canvas.toDataURL('image/png');
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'gacha-result.png', { type: 'image/png' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Gacha Result',
+                text: 'Look what I just pulled!'
+            });
+        } else {
+            // Fallback: Download
+            const link = doc.createElement('a');
+            link.download = 'gacha-result.png';
+            link.href = dataUrl;
+            link.click();
+            alert("網頁版不支援直接分享，已為您下載截圖！");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("截圖失敗，請手動截圖。");
+    } finally {
+        ui.shareBtn.textContent = originalText;
+        ui.shareBtn.disabled = false;
+    }
 }
 
 function renderLobby() {
