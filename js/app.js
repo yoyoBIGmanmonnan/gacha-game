@@ -123,6 +123,21 @@ function showResults(results) {
         ui.resultGrid.appendChild(card);
     });
 
+    // Inject Buttons into Actions Container
+    const actions = doc.querySelector('.result-actions');
+    actions.innerHTML = `
+        <button id="draw-again-btn" class="btn-primary" style="background: var(--accent-color); color: #000;">AGAIN (${results.length === 10 ? '10x' : 'Single'})</button>
+        <button id="share-btn" class="btn-primary" style="background: var(--secondary-color); box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);">SHARE RESULT</button>
+        <button id="close-result-btn" class="btn-secondary">CANCEL</button>
+    `;
+
+    // Re-bind listeners for dynamic buttons
+    doc.getElementById('close-result-btn').addEventListener('click', closeResults);
+    doc.getElementById('share-btn').addEventListener('click', handleShare);
+    doc.getElementById('draw-again-btn').addEventListener('click', () => {
+        handleDrawAgain(results.length === 10 ? 'ten' : 'single', results.length === 10 ? 10 : 1);
+    });
+
     // Render Summary if more than 1 result
     const summaryContainer = document.getElementById('result-summary') || createSummaryContainer();
     if (results.length > 1) {
@@ -162,6 +177,13 @@ function renderSummary(results, container) {
 function closeResults() {
     ui.gachaOverlay.classList.add('hidden');
     ui.resultContainer.classList.add('hidden');
+    state.isAnimating = false; // Force reset state
+}
+
+async function handleDrawAgain(type, cost) {
+    closeResults();
+    // Small delay to let overlay hide before starting again
+    setTimeout(() => handleDraw(type, cost), 100);
 }
 
 async function handleShare() {

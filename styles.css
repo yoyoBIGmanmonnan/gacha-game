@@ -341,16 +341,30 @@ button {
     text-align: center;
     width: 100%;
     max-width: 1000px;
-    margin-top: auto;
-    margin-bottom: auto;
-    padding-bottom: 3rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .result-actions {
+    position: sticky;
+    bottom: 0px;
+    left: 0;
+    width: 100%;
+    background: rgba(13, 13, 18, 0.95);
+    padding: 1.5rem 1rem;
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    margin-top: 2rem;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    border-top: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    z-index: 105;
+}
+
+.result-actions button {
+    flex: 1;
+    min-width: 100px;
+    max-width: 200px;
 }
 
 .result-grid {
